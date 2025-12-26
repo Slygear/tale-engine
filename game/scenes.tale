@@ -1,0 +1,9 @@
+scene intro:
+  text:
+    "Hello from Tale Engine."
+  choice "Continue":
+    goto end
+
+scene end:
+  text:
+    "Done."

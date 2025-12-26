@@ -1,0 +1,250 @@
+Text-Based RPG Engine Roadmap (DSL-First, From Scratch)
+====================================================
+
+Goal
+----
+Build a high-quality, from-scratch text-based RPG engine with:
+- A readable, writer-friendly DSL as the primary content format
+- Strong validation and reference checking
+- Deterministic simulations (seeded RNG)
+- Serious RPG mechanics (stats, items, effects, combat)
+- A non-web, desktop editor/tooling suite
+
+Principles
+----------
+1) Core engine is UI-agnostic (runtime can be CLI/TUI/GUI later).
+2) Content is data-driven: source DSL -> validated -> compiled cache for runtime.
+3) Errors must be human-friendly: line/column, actionable messages.
+4) Deterministic by default: reproducible runs via RNG seed.
+5) Tooling-first mindset: one-click playtest and fast iteration.
+
+Repository Layout (Proposed)
+----------------------------
+/engine
+  - Core systems (state, checks, effects, combat, save/load)
+/tools
+  - Parser, validator, compiler, editor, simulations
+/game
+  - Content sources (DSL, data files), test scenarios
+/docs
+  - Design docs, DSL spec, system specs
+
+Milestone 0 — Product Definition & Constraints (1–2 days)
+--------------------------------------------------------
+Deliverables:
+- DESIGN.md with:
+  - engine goals
+  - non-goals
+  - determinism rules
+  - content pipeline overview
+- Folder skeleton as above
+- Build system selected (e.g., CMake) and initial CI (optional)
+
+Acceptance Criteria:
+- Clean repo builds and runs a “Hello Engine” tool.
+- Design principles are written and agreed.
+
+Milestone 1 — DSL v1 + Parser (Core Content System)
+---------------------------------------------------
+Scope (DSL v1 features):
+- scene <id>:
+- text blocks
+- choice blocks
+- goto <scene_id>
+- basic effects:
+  - set_flag(name, value)
+  - give_item(item_id, qty)
+  - take_item(item_id, qty)
+
+Engineering Tasks:
+- Lexer -> Parser -> AST
+- Precise diagnostics: file, line, column, context snippet
+- Unit tests:
+  - parsing success cases
+  - parsing failure cases (expected error messages)
+
+Acceptance Criteria:
+- A scenes.dsl file parses into an AST.
+- Errors show exact position + helpful message.
+
+Milestone 2 — Validation + Schema/Reference System
+--------------------------------------------------
+Validation Types:
+- Structural:
+  - missing required fields
+  - duplicate IDs
+- Semantic:
+  - goto target missing
+  - invalid function/effect arguments
+  - invalid conditions (unknown stat/flag/item)
+- Graph Analysis:
+  - unreachable scenes
+  - dead ends (optional warnings)
+  - orphaned content references
+
+Tooling:
+- CLI: validate <game_path>
+- Output:
+  - errors (must fix)
+  - warnings (should fix)
+
+Acceptance Criteria:
+- Broken references are detected before runtime.
+- Validator outputs a clear list of issues with locations.
+
+Milestone 3 — Runtime State + Interpreter (Playable Core)
+--------------------------------------------------------
+Core Data:
+- GameState:
+  - flags, variables, world time, faction reputations (initial)
+- PlayerState:
+  - stats (stub), inventory (stub), status effects (stub)
+
+Interpreter:
+- Load validated content (AST)
+- Present current scene:
+  - render text
+  - compute available choices (based on conditions)
+- Apply effects on choice selection
+- Transition to next scene via goto
+
+Save/Load v1:
+- Serialize minimal state snapshot (format TBD)
+- Restore to exact scene + state
+
+Acceptance Criteria:
+- A minimal game is playable end-to-end.
+- Save/load restores the same situation consistently.
+
+Milestone 4 — RPG Systems v1 (Serious Mechanics Foundation)
+-----------------------------------------------------------
+Stats:
+- Base stats + derived stats
+- Modifiers:
+  - additive
+  - multiplicative
+  - caps
+- Clear stacking rules
+
+Check System:
+- check(stat, dc) with:
+  - deterministic seeded RNG
+  - fail-forward support (partial outcomes)
+
+Inventory/Equipment v1:
+- item instances (id, qty)
+- equipment slots (optional in v1)
+- weight/encumbrance (optional in v1)
+
+Effects v1:
+- add_stat(stat, amount, duration?)
+- add_status(status_id, duration)
+- give_item / take_item
+- set_flag / add_rep
+
+Acceptance Criteria:
+- Choices can depend on stats/flags/items.
+- Effects change state in visible, testable ways.
+
+Milestone 5 — Combat v1 (Turn-Based, Minimal but Correct)
+---------------------------------------------------------
+Combat Loop:
+- Initiative (dex + rng)
+- Turn order
+- Action economy (1 action per turn)
+
+Damage Pipeline:
+1) hit roll (accuracy vs evasion)
+2) base damage
+3) scaling (STR/INT/etc.)
+4) armor/resistance
+5) on-hit triggers (v1 limited)
+
+Status Effects v1:
+- poison, bleed, stun (basic)
+
+AI v1:
+- priority table (e.g., heal if low HP, otherwise attack)
+
+Integration:
+- DSL action: start_combat(enemy_pack_id)
+
+Acceptance Criteria:
+- Combat produces a detailed, deterministic combat log.
+- Outcomes are reproducible with the same seed.
+
+Milestone 6 — Desktop Editor/Tooling v1 (No Web)
+------------------------------------------------
+Tech:
+- C++ + Dear ImGui (docking)
+
+Core Panels:
+- Content Browser (scenes/items/skills/enemies)
+- DSL Editor panel (basic syntax highlighting optional)
+- Validation panel (errors/warnings list, clickable to location)
+- Playtest panel (start from selected scene)
+- Runtime Debug panel (live GameState view)
+- Reference/Graph view (list-based v1; node graph later)
+
+Hot Reload:
+- Auto re-parse + re-validate when content changes
+
+Acceptance Criteria:
+- Create/edit a scene and playtest it without leaving the editor.
+- Validation failures are shown instantly.
+
+Milestone 7 — Compile Step (Shipping Quality)
+---------------------------------------------
+Pipeline:
+- Source DSL -> AST -> Compiled cache (binary or packed format)
+- Runtime loads compiled cache only
+- Editor uses source DSL and can regenerate cache
+
+Versioning:
+- Content version in cache
+- Save file versioning + migration hooks
+
+Acceptance Criteria:
+- Runtime loads faster and is stable with large content.
+- Old saves can be migrated or gracefully rejected with messages.
+
+Milestone 8 — Advanced Systems (What Makes It “Excellent”)
+----------------------------------------------------------
+Effect System v2:
+- triggers:
+  - onHit, onCrit, onTurnStart, onTurnEnd, onKill, onChoiceSelected
+- stacking rules per effect
+- dispel/cleanse rules
+
+Tag/Query System:
+- tags on entities (undead, fire, twoHanded, cursed)
+- queries used in checks and effects
+
+Balance Simulation Tools:
+- 10k+ combat simulations
+- loot distribution simulations
+- output summary stats (avg DPS, TTK, death rate, drop rates)
+
+Quest System v2:
+- objectives, branching questlines, timed failures
+- quest conditions integrated into DSL
+
+Localization Pipeline (Optional):
+- extract text keys
+- support multiple languages for content
+
+Quality Gates (Non-Negotiable)
+------------------------------
+- Determinism: same seed => same results.
+- Validation coverage: no silent broken references.
+- Editor playtest: start anywhere, quickly.
+- Robust logging: clear runtime errors with context.
+- Automated tests: parser + validator + combat core.
+
+Next Concrete Step
+------------------
+Define the DSL v1 specification:
+- exact syntax (indent-based blocks)
+- grammar (EBNF)
+- AST node list
+- standard library of effects/conditions for v1
